@@ -1,0 +1,12 @@
+# Local .terraform directories (contains provider binaries)
+.terraform/
+
+# .tfstate files (contains "secrets" and cloud IDs)
+*.tfstate
+*.tfstate.*
+
+# Terraform lock file (prevents version conflicts)
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
