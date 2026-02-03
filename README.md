@@ -10,9 +10,10 @@ The network is built using a hub-and-spoke logic within a single Virtual Network
 
 - **VNet Address Space:** `10.0.0.0/16`
 - **Subnets (/24):**
-  - `snet-frontend`: Public-facing tier for Web Servers/Load Balancers.
-  - `snet-backend`: Private tier for Application Logic.
-  - `snet-database`: Isolated tier for Data Storage (No direct internet access).
+  - `snet-frontend`: 10.0.1.0/24 Public-facing tier for Web Servers/Load Balancers.
+  - `snet-backend`: 10.0.2.0/24 Private tier for Application Logic.
+  - `snet-database`: 10.0.3.0/24 Isolated tier for Data Storage (No direct internet access).
+  - `snet-management`: 10.0.4.0/24 (Admin/Jumpbox access)
 
 
 
@@ -27,7 +28,7 @@ The network is built using a hub-and-spoke logic within a single Virtual Network
 
 ## 🗺️ Roadmap: The Road to June
 This repository is a work-in-progress as I build out the full stack for my portfolio.
-- [x] **Phase 1:** Core Networking (VNet & Subnets) - *Current Status*
+- [x] **Phase 1:** Core Networking (VNet, Subnets, Resource Groups) - **COMPLETE**
 - [ ] **Phase 2:** Network Security Groups (NSGs) & Traffic Lockdown
 - [ ] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer)
 - [ ] **Phase 4:** Managed Database Tier (Azure SQL)
