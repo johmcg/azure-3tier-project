@@ -44,7 +44,11 @@ This repository is a work-in-progress as I build out the full stack for my portf
 
 - [x] **Phase 1:** Core Networking (VNet, Subnets, Resource Groups) - **COMPLETE**
 - [x] **Phase 2:** Network Security Groups (NSGs) & Traffic Lockdown - **COMPLETE**
-- [ ] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer)
+- [ ] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer) - **IN PROGRESS**
+  - [x] Provisioned Ubuntu 22.04 LTS via Terraform.
+  - [x] Automated SSH Key injection for secure access.
+  - [x] Verified Web Tier via Nginx installation.
+  - [ ] Implement Azure Standard Load Balancer & Health Probes.
 - [ ] **Phase 4:** Managed Database Tier (Azure SQL)
 - [ ] **Phase 5:** CI/CD Integration with GitHub Actions
 
