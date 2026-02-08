@@ -59,6 +59,8 @@ This repository is a work-in-progress as I build out the full stack for my portf
 2. **Variable-Driven Security Rules:** Instead of hardcoding IPs in rules, I mapped `source_address_prefix` to Terraform variables. This ensures that if a subnet prefix changes, the firewall rules update automatically, preventing "configuration drift."
 3. **Stateful vs. Stateless:** Mastered the logic of Azure's **Stateful** NSGs—understanding that allowing inbound traffic on Port 3306 automatically allows the response to flow back to the source without needing a matching outbound rule.
 4. **NSG Association:** Learned that creating an NSG is only half the battle; it must be explicitly associated with a subnet via `azurerm_subnet_network_security_group_association` to actually protect the resources.
+5. **SSH Key Management:** Implemented local-to-cloud public key injection using the file() function, ensuring that no passwords are hardcoded and the VM is secured from the moment of creation.
+6. **Multi-Rule NSGs:** Successfully managed rule prioritization (SSH @ 100, HTTP @ 110) to allow administrative access and web traffic simultaneously.
 
 ---
 
