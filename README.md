@@ -10,45 +10,45 @@ The network is built using a hub-and-spoke logic within a single Virtual Network
 
 - **VNet Address Space:** `10.0.0.0/16`
 - **Subnets (/24):**
-  - `snet-frontend`: 10.0.1.0/24 Public-facing tier for Web Servers/Load Balancers.
-  - `snet-backend`: 10.0.2.0/24 Private tier for Application Logic.
+  - `snet-frontend`: 10.0.1.0/24 Public-facing tier for the **Azure Standard Load Balancer**.
+  - `snet-backend`: 10.0.2.0/24 Private tier for **Virtual Machines** (No Public IP).
   - `snet-database`: 10.0.3.0/24 Isolated tier for Data Storage (No direct internet access).
   - `snet-management`: 10.0.4.0/24 Management tier for Admin/Jumpbox access.
 
 ---
 
-## 🛡️ Security & Traffic Lockdown (Phase 2)
-In Phase 2, I implemented a **Zero-Trust** approach by isolating each tier with dedicated **Network Security Groups (NSGs)** and explicit Subnet Associations.
-
-
+## 🛡️ Security & Traffic Lockdown
+I implemented a **Zero-Trust** approach by isolating each tier with dedicated **Network Security Groups (NSGs)** and explicit Subnet Associations.
 
 ### Security Rules Implemented:
 | Tier | NSG Name | Security Policy | Logic |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | `nsg-frontend` | Default (Locked) | Prepared for Port 80/443 public access. |
-| **Backend** | `nsg-backend` | Default (Locked) | Internal application logic isolation. |
+| **Frontend** | `nsg-frontend` | **AllowHTTPInbound** | **Priority 110:** Allows Port 80 for the Load Balancer frontend. |
+| **Backend** | `nsg-backend` | **AllowLBInbound** | **Priority 100:** Allows Azure Load Balancer health probes. |
+| **Backend** | `nsg-backend` | **AllowAnyHTTPInbound**| **Priority 110:** Permits user traffic from the Internet to reach the private VM. |
 | **Database** | `nsg-database` | **AllowBackendInbound** | **Priority 100:** Only accepts TCP 3306 from Backend subnet. |
 | **Management**| `nsg-management`| Default (Locked) | Prepared for restricted SSH/RDP access. |
 
 ---
 
-## 🛠️ Technology Stack
-* **Cloud:** Microsoft Azure
-* **IaC:** Terraform (HCL)
-* **Tooling:** Azure CLI, VS Code, Git
+## ✅ Phase 3 Verification (Compute & Load Balancing)
+To verify the high-availability architecture, I performed the following:
+1. **Bootstrap Automation:** Used `custom_data` (Cloud-init) to automatically install and start Nginx on VM creation.
+2. **Infrastructure Decoupling:** Moved the VM to a private backend subnet and removed its Public IP, ensuring all traffic must pass through the Load Balancer.
+3. **Standard LB Configuration:** Implemented **Outbound Rules** and **SNAT** logic to allow private VMs to communicate with Azure's health probe system.
+4. **Health Verification:** Successfully confirmed the Backend Pool health state via Azure Insights and accessed the Nginx "Welcome" page via the **Load Balancer's Public IP**.
 
 ---
 
-## 🗺️ Roadmap: The Road to June
-This repository is a work-in-progress as I build out the full stack for my portfolio.
-
+## 🗺️ Roadmap:
 - [x] **Phase 1:** Core Networking (VNet, Subnets, Resource Groups) - **COMPLETE**
 - [x] **Phase 2:** Network Security Groups (NSGs) & Traffic Lockdown - **COMPLETE**
-- [ ] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer) - **IN PROGRESS**
+- [x] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer) - **COMPLETE**
   - [x] Provisioned Ubuntu 22.04 LTS via Terraform.
   - [x] Automated SSH Key injection for secure access.
-  - [x] Verified Web Tier via Nginx installation.
-  - [ ] Implement Azure Standard Load Balancer & Health Probes.
+  - [x] Automated Nginx deployment via Cloud-Init.
+  - [x] Implemented Azure Standard Load Balancer with HTTP Health Probes.
+  - [x] Configured Outbound Rules for NAT/SNAT connectivity.
 - [ ] **Phase 4:** Managed Database Tier (Azure SQL)
 - [ ] **Phase 5:** CI/CD Integration with GitHub Actions
 
@@ -56,11 +56,11 @@ This repository is a work-in-progress as I build out the full stack for my portf
 
 ## 🧠 Lessons Learned & Troubleshooting
 1. **Entra ID MFA (AADSTS50076):** Resolved CLI authentication issues caused by Conditional Access policies by forcing a tenant-specific login: `az login --tenant <TENANT_ID>`.
-2. **Variable-Driven Security Rules:** Instead of hardcoding IPs in rules, I mapped `source_address_prefix` to Terraform variables. This ensures that if a subnet prefix changes, the firewall rules update automatically, preventing "configuration drift."
-3. **Stateful vs. Stateless:** Mastered the logic of Azure's **Stateful** NSGs—understanding that allowing inbound traffic on Port 3306 automatically allows the response to flow back to the source without needing a matching outbound rule.
-4. **NSG Association:** Learned that creating an NSG is only half the battle; it must be explicitly associated with a subnet via `azurerm_subnet_network_security_group_association` to actually protect the resources.
-5. **SSH Key Management:** Implemented local-to-cloud public key injection using the file() function, ensuring that no passwords are hardcoded and the VM is secured from the moment of creation.
-6. **Multi-Rule NSGs:** Successfully managed rule prioritization (SSH @ 100, HTTP @ 110) to allow administrative access and web traffic simultaneously.
+2. **Standard LB Outbound Connectivity:** Learned that Standard SKU Load Balancers require an explicit **Outbound Rule** for private VMs to respond to Health Probes.
+3. **SNAT Conflicts:** Resolved the `LoadBalancingRuleMustDisableSNAT` error by disabling outbound SNAT on the Load Balancing rule when using a dedicated Outbound Rule.
+4. **Service Tag Precision:** Leveraged the `AzureLoadBalancer` service tag to allow health checks without exposing the VM to the entire internet.
+5. **Stateful vs. Stateless:** Mastered the logic of Azure's **Stateful** NSGs, eliminating the need for redundant outbound response rules.
+6. **Bootstrap Automation (Cloud-Init):** Utilized `custom_data` and `base64encode` to ensure the VM is ready to serve traffic the moment it is provisioned.
 
 ---
 
@@ -68,5 +68,5 @@ This repository is a work-in-progress as I build out the full stack for my portf
 1. **Clone:** `git clone https://github.com/johmcg/azure-3tier-project.git`
 2. **Authenticate:** `az login`
 3. **Initialize:** `terraform init`
-4. **Plan:** `terraform plan`
-5. **Apply:** `terraform apply`
+4. **Apply:** `terraform apply`
+5. **Cleanup:** `terraform destroy`
