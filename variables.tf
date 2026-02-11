@@ -17,3 +17,9 @@ variable "subnet_database_prefix" {
 variable "subnet_management_prefix" {
   default = ["10.0.4.0/24"]
 }
+
+variable "sql_password" {
+  description = "SQL Administrator Password"
+  type        = string
+  sensitive   = true
+}

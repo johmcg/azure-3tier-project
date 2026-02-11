@@ -4,8 +4,14 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
+
+provider "random" {}
 
 provider "azurerm" {
   features {}
@@ -15,7 +21,7 @@ provider "azurerm" {
 # 1. The Resource Group
 resource "azurerm_resource_group" "project_rg" {
   name     = "rg-3tier-webstack"
-  location = "East US"
+  location = "eastus2"
 }
 
 # 2. The Virtual Network & Subnets
@@ -38,6 +44,7 @@ resource "azurerm_subnet" "backend" {
   resource_group_name  = azurerm_resource_group.project_rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = var.subnet_backend_prefix
+  service_endpoints    = ["Microsoft.Sql"]
 }
 
 resource "azurerm_subnet" "database" {
@@ -45,6 +52,7 @@ resource "azurerm_subnet" "database" {
   resource_group_name  = azurerm_resource_group.project_rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = var.subnet_database_prefix
+  service_endpoints    = ["Microsoft.Sql"]
 }
 
 resource "azurerm_subnet" "management" {
@@ -260,6 +268,33 @@ resource "azurerm_lb_outbound_rule" "lb_outbound" {
   }
 }
 
-output "load_balancer_public_ip" {
-  value = azurerm_public_ip.lb_pip.ip_address
+resource "azurerm_mssql_server" "sql_server" {
+  name                         = "sql-server-webstack-v2-${random_integer.suffix.result}" # Unique name
+  resource_group_name          = azurerm_resource_group.project_rg.name
+  location                     = azurerm_resource_group.project_rg.location
+  version                      = "12.0"
+  administrator_login          = "sqladmin"
+  administrator_login_password = var.sql_password
+  minimum_tls_version = "1.2"
+}
+
+resource "azurerm_mssql_database" "db" {
+  name           = "db-webstack"
+  server_id      = azurerm_mssql_server.sql_server.id
+  collation      = "SQL_Latin1_General_CP1_CI_AS"
+  license_type   = "BasePrice"
+  max_size_gb    = 2
+  sku_name       = "Basic" # Cheapest option for learning
+}
+
+# This helper creates a random string so your server name doesn't conflict
+resource "random_integer" "suffix" {
+  min = 10000
+  max = 99999
+}
+
+resource "azurerm_mssql_virtual_network_rule" "sql_vnet_rule" {
+  name      = "sql-vnet-rule"
+  server_id = azurerm_mssql_server.sql_server.id
+  subnet_id = azurerm_subnet.backend.id # Only allow the Backend (Web) Tier
 }
