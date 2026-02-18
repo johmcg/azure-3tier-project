@@ -32,34 +32,41 @@ I implemented a **Zero-Trust** approach by isolating each tier with dedicated **
 
 ---
 
-## ✅ Phase 4 Verification (Managed Database Tier)
-To secure the data layer and finalize the 3-tier stack:
-1. **PaaS Integration:** Provisioned an **Azure SQL Database** (Basic SKU) with a globally unique DNS name using `random_integer`.
-2. **Network Isolation:** Enabled **Microsoft.Sql Service Endpoints** on the **backend subnet** to ensure traffic never leaves the Azure backbone while communicating with the database.
-3. **VNet Rules:** Applied an `azurerm_mssql_virtual_network_rule` to explicitly whitelist the backend app tier while blocking all public internet access.
-4. **Regional Pivot:** Migrated the entire stack from `eastus` to `eastus2` to resolve regional capacity constraints.
+## 📸 Proof of Concept & Verification
+To validate the architecture, the following live tests were performed:
+
+### 1. Web Tier Connectivity (Load Balancer)
+![Nginx Welcome Page](./img/screenshot-nginx.png)  
+*The Nginx "Welcome" page successfully served via the **Load Balancer's Public IP**, confirming healthy backend pool routing and NSG rule priority.*
+
+### 2. Data Tier Isolation (SQL Networking)
+![SQL VNet Rules](./img/screenshot-sql-networking.png)  
+*Azure SQL firewall configuration showing the **Virtual Network Rule** in place. This restricts database access exclusively to the private backend subnet via Service Endpoints.*
+
+### 3. Traffic Lockdown (NSG Verification)
+![NSG Rules](./img/screenshot-nsg.png)  
+*Validation of the **Backend NSG**, demonstrating the specific allow-rules for the Azure Load Balancer and internal web traffic while maintaining a default-deny posture for unauthorized sources.*
+
+### 4. IaC Idempotency & CI/CD
+![Terraform Plan & GitHub Actions](./img/screenshot-ci.png)  
+*Terminal output confirming **Idempotency** ("No changes. Your infrastructure matches the configuration") and a passing **GitHub Actions CI** run for linting and validation.*
 
 ---
 
-## 🗺️ Roadmap:
-- [x] **Phase 1:** Core Networking (VNet, Subnets, Resource Groups) - **COMPLETE**
-- [x] **Phase 2:** Network Security Groups (NSGs) & Traffic Lockdown - **COMPLETE**
-- [x] **Phase 3:** Compute Layer (Virtual Machines & Load Balancer) - **COMPLETE**
-- [x] **Phase 4:** Managed Database Tier (Azure SQL) - **COMPLETE**
-- [ ] **Phase 5:** CI/CD Integration with GitHub Actions
+## ✅ Phase 5: CI/CD Integration
+- [x] Implemented GitHub Actions CI workflow for automated code validation.
+- [x] Configured `terraform fmt` and `terraform validate` gates to ensure code quality.
+- [x] Established a "Plan-Only" logic to demonstrate pipeline proficiency without incurring unnecessary cloud costs.
 
 ---
 
 ## 🧠 Lessons Learned & Troubleshooting
-1. **Regional Capacity & Pivot:** Encountered `ProvisioningDisabled` in `eastus` due to Azure regional limits. Successfully performed a regional migration to `eastus2`, learning that networking resources (VNets/IPs) have "regional gravity" and must be recreated during a move.
-2. **Infrastructure Integrity (State Reconciliation):** Managed "Inconsistent Result" and "Resource Already Exists" errors by reconciling the local Terraform state with Azure Portal reality using `terraform import` after a manual resource group cleanup.
-3. **Service Endpoint Scope:** Discovered that **Virtual Network Rules** for SQL require the **client subnet** (Backend) to have the `Microsoft.Sql` endpoint enabled, as the VMs are the initiators of the connection.
-4. **Entra ID MFA (AADSTS50076):** Resolved CLI authentication issues caused by Conditional Access policies by forcing a tenant-specific login: `az login --tenant <TENANT_ID>`.
-5. **Standard LB Outbound Connectivity:** Learned that Standard SKU Load Balancers require an explicit **Outbound Rule** for private VMs to respond to Health Probes.
-6. **SNAT Conflicts:** Resolved the `LoadBalancingRuleMustDisableSNAT` error by disabling outbound SNAT on the Load Balancing rule when using a dedicated Outbound Rule.
-7. **Service Tag Precision:** Leveraged the `AzureLoadBalancer` service tag to allow health checks without exposing the VM to the entire internet.
-8. **Stateful vs. Stateless:** Mastered the logic of Azure's **Stateful** NSGs, eliminating the need for redundant outbound response rules.
-9. **Bootstrap Automation (Cloud-Init):** Utilized `custom_data` and `base64encode` to ensure the VM is ready to serve traffic the moment it is provisioned.
+1. **Regional Capacity & Pivot:** Encountered `ProvisioningDisabled` in `eastus`. Successfully performed a regional migration to `eastus2`, learning that networking resources have "regional gravity" and must be recreated during a move.
+2. **Infrastructure Integrity (State Reconciliation):** Managed "Inconsistent Result" errors by reconciling the local Terraform state with the Azure Portal using `terraform import`.
+3. **Service Endpoint Scope:** Discovered that **Virtual Network Rules** for SQL require the **client subnet** (Backend) to have the `Microsoft.Sql` endpoint enabled, as the VMs initiate the connection.
+4. **Standard LB Outbound Connectivity:** Learned that Standard SKU Load Balancers require an explicit **Outbound Rule** for private VMs to respond to Health Probes.
+5. **SNAT Conflicts:** Resolved the `LoadBalancingRuleMustDisableSNAT` error by disabling outbound SNAT on the Load Balancing rule when using a dedicated Outbound Rule.
+6. **Stateful vs. Stateless:** Mastered the logic of Azure's **Stateful** NSGs, eliminating the need for redundant outbound response rules.
 
 ---
 

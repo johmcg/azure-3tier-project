@@ -1,0 +1,36 @@
+name: "Terraform CI"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  terraform-check:
+    runs-on: ubuntu-latest
+    env:
+      # These environment variables allow Terraform to authenticate with Azure without needing to set up a Storage Account or Service Principal in the workflow.
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format
+        run: terraform fmt -check
+        # Ensures code is pretty and follows standards
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        # '-backend=false' allows this to run without needing an actual Storage Account
+
+      - name: Terraform Validate
+        run: terraform validate
+        # This catches syntax and logic errors.
